@@ -153,6 +153,18 @@
         .fc-scrollgrid {
             overflow: hidden !important;
         }
+        .fc-h-event {
+            overflow: hidden !important;
+        }
+        .fc-h-event .fc-event-main {
+            overflow: hidden;
+            min-width: 0;
+        }
+        .fc-h-event .fc-event-main-frame {
+            display: flex;
+            overflow: hidden;
+            min-width: 0;
+        }
     </style>
 </head>
 <body class="py-4">
@@ -206,6 +218,7 @@
                     <thead class="table-light text-uppercase" style="font-size: 0.85rem;">
                         <tr>
                             <th scope="col" class="py-3 px-3">Aktivitas / Judul</th>
+                            <th scope="col" class="py-3 px-3">Jenis</th>
                             <th scope="col" class="py-3 px-3">Tanggal Mulai</th>
                             <th scope="col" class="py-3 px-3">Tanggal Selesai</th>
                             <th scope="col" class="py-3 px-3 text-center no-print">Aksi</th>
@@ -240,6 +253,10 @@
                             <label for="title" class="form-label fw-medium">Nama Aktivitas</label>
                             <input type="text" name="title" id="title" class="form-control" placeholder="Contoh: Rapat Mingguan" required>
                         </div>
+                        <div class="mb-3">
+                            <label for="jenis" class="form-label fw-medium">Jenis Kegiatan</label>
+                            <input type="text" name="jenis" id="jenis" class="form-control" placeholder="Contoh: Rapat, Perjalanan Dinas, Pelatihan...">
+                        </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="start" class="form-label fw-medium">Waktu Mulai</label>
@@ -272,6 +289,17 @@
         let eventsData = [];
         let currentPage = 1;
         const ITEMS_PER_PAGE = 10;
+
+        const JENIS_PALETTE = ['#3B82F6','#10B981','#8B5CF6','#EF4444','#F59E0B','#EC4899','#06B6D4','#84CC16','#F97316','#6366F1'];
+
+        function getJenisColor(jenis) {
+            if (!jenis || jenis.trim() === '') return '#D4AF37';
+            let hash = 0;
+            for (let i = 0; i < jenis.length; i++) {
+                hash = jenis.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return JENIS_PALETTE[Math.abs(hash) % JENIS_PALETTE.length];
+        }
 
         // 2. INISIALISASI FULLCALENDAR & BOOTSTRAP
         document.addEventListener('DOMContentLoaded', function() {
@@ -414,10 +442,15 @@
                 pageData.forEach(event => {
                     const startDate = new Date(event.start).toLocaleString('id-ID', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
                     const endDate = event.end ? new Date(event.end).toLocaleString('id-ID', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '-';
+                    const jenis = event.jenis || event.extendedProps?.jenis || '';
+                    const jenisBadge = jenis
+                        ? `<span class="badge rounded-pill" style="background:${getJenisColor(jenis)};font-size:0.75rem">${jenis}</span>`
+                        : '<span class="text-muted small">-</span>';
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <th scope="row" class="px-3 fw-medium text-dark">${event.title}</th>
+                        <td class="px-3">${jenisBadge}</td>
                         <td class="px-3">${startDate}</td>
                         <td class="px-3">${endDate}</td>
                         <td class="px-3 text-center no-print">
@@ -458,7 +491,9 @@
             currentPage = page;
             const keyword = document.getElementById('live-search').value.toLowerCase();
             const filteredData = keyword
-                ? eventsData.filter(e => e.title.toLowerCase().includes(keyword))
+                ? eventsData.filter(e =>
+                    e.title.toLowerCase().includes(keyword) ||
+                    (e.jenis || '').toLowerCase().includes(keyword))
                 : eventsData;
             renderTabel(filteredData);
         }
@@ -467,7 +502,8 @@
             currentPage = 1;
             const keyword = e.target.value.toLowerCase();
             const filteredData = eventsData.filter(event =>
-                event.title.toLowerCase().includes(keyword)
+                event.title.toLowerCase().includes(keyword) ||
+                (event.jenis || '').toLowerCase().includes(keyword)
             );
             renderTabel(filteredData);
         });
@@ -480,6 +516,7 @@
         function bukaModal() {
             form.reset();
             document.getElementById('event-id').value = '';
+            document.getElementById('jenis').value = '';
             modalTitle.innerText = 'Tambah Jadwal Baru';
             btnHapus.classList.add('d-none');
             eventModal.show();
@@ -512,6 +549,7 @@
             if(eventObj.end) {
                 document.getElementById('end').value = formatWaktu(eventObj.end);
             }
+            document.getElementById('jenis').value = eventObj.extendedProps?.jenis || '';
             btnHapus.classList.remove('d-none');
         }
 
@@ -535,12 +573,14 @@
             btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Menyimpan...`;
 
             const idRaw = document.getElementById('event-id').value;
+            const jenisVal = document.getElementById('jenis').value.trim();
             const payloadData = {
                 id: (idRaw !== "" && idRaw !== null && idRaw !== undefined) ? idRaw.toString() : Date.now().toString(),
                 title: document.getElementById('title').value.toString().trim(),
                 start: document.getElementById('start').value,
                 end: document.getElementById('end').value || null,
-                backgroundColor: '#D4AF37'
+                jenis: jenisVal,
+                backgroundColor: getJenisColor(jenisVal)
             };
 
             fetch(API_URL, {
@@ -614,12 +654,14 @@
 
         // Update data array ketika event di-drag di kalender MENGGUNAKAN FETCH
         function updateEventData(eventObj) {
+            const jenisVal = eventObj.extendedProps?.jenis || '';
             const payloadData = {
                 id: eventObj.id.toString(),
                 title: eventObj.title.toString(),
                 start: eventObj.startStr,
                 end: eventObj.endStr || null,
-                backgroundColor: eventObj.backgroundColor || '#D4AF37'
+                jenis: jenisVal,
+                backgroundColor: getJenisColor(jenisVal)
             };
 
             Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Menyimpan perubahan...', showConfirmButton: false });
