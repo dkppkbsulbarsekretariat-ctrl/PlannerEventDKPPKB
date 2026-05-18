@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#243d6a">
+    <link rel="icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Planner Event">
+
+    <title>Planner Event - Dinas Kesehatan</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        /* Background and Font Customization */
+        body {
+            background-color: #243d6a;
+            font-family: 'Tajawal', sans-serif;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Warna Tombol Gold & Putih */
+        .btn-gold {
+            background-color: #D4AF37;
+            color: #ffffff;
+            border: 1px solid #c2a032;
+            transition: all 0.3s ease;
+            border-radius: 0.5rem !important;
+        }
+        .btn-gold:hover {
+            background-color: #b5952f;
+            color: #ffffff;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+            transform: translateY(-1px);
+        }
+        
+        /* Warna Tombol PDF */
+        .btn-pdf {
+            background-color: #2d4d84;
+            color: #ffffff;
+            border: 1px solid #2d4d84;
+            transition: all 0.3s ease;
+            border-radius: 0.5rem !important;
+        }
+        .btn-pdf:hover {
+            background-color: #1f365c;
+            color: #ffffff;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+            transform: translateY(-1px);
+        }
+
+        /* Efek melengkung & hover untuk semua Tombol */
+        .btn {
+            border-radius: 0.5rem !important;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        .btn-close:hover {
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* Custom UI Kalender */
+        .fc .fc-button-primary {
+            background-color: #D4AF37 !important;
+            border-color: #D4AF37 !important;
+            color: #ffffff !important;
+            border-radius: 0.5rem !important;
+            text-transform: capitalize;
+            transition: all 0.3s ease !important;
+            margin: 0 4px !important;
+        }
+        .fc .fc-button-primary:hover {
+            background-color: #b5952f !important;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+            transform: translateY(-1px);
+        }
+        .fc .fc-button-primary:not(:disabled):active, .fc .fc-button-primary:not(:disabled).fc-button-active {
+            background-color: #9c8026 !important;
+        }
+        
+        /* Warna Khusus Tombol Hari Ini */
+        .fc .fc-today-button {
+            background-color: #2d7a4a !important;
+            border-color: #2d7a4a !important;
+        }
+        .fc .fc-today-button:hover {
+            background-color: #23613a !important;
+            border-color: #23613a !important;
+        }
+        .fc .fc-today-button:not(:disabled):active, .fc .fc-today-button:not(:disabled).fc-button-active {
+            background-color: #1a492c !important;
+        }
+
+        .fc-theme-standard th {
+            padding: 8px 0;
+            background-color: #f8f9fa;
+        }
+
+        /* Mode Cetak PDF */
+        .pdf-mode .no-print {
+            display: none !important;
+        }
+        .pdf-mode {
+            padding: 20px;
+        }
+        
+        .main-container {
+            flex: 1;
+        }
+
+        /* Fix overflow teks event di kalender */
+        .fc-daygrid-event {
+            overflow: hidden !important;
+            border-radius: 4px !important;
+        }
+        .fc-daygrid-event .fc-event-title-container {
+            overflow: hidden;
+            min-width: 0;
+        }
+        .fc-daygrid-event .fc-event-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.78rem;
+            font-weight: 500;
+            padding: 1px 2px;
+        }
+        .fc-daygrid-event .fc-event-time {
+            font-size: 0.75rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .fc-daygrid-body,
+        .fc-scrollgrid {
+            overflow: hidden !important;
+        }
+    </style>
+</head>
+<body class="py-4">
+
+    <div id="main-content" class="container bg-white rounded-4 shadow p-4 p-md-5 mb-4 main-container">
+        
+        <div class="text-center mb-3 no-print">
+            <span id="top-realtime-clock" class="badge bg-dark border border-warning text-warning fs-5 shadow-sm px-4 py-2"></span>
+        </div>
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 border-bottom pb-3 gap-3">
+            <div>
+                <h1 class="h2 fw-bold d-flex align-items-center gap-2 mb-1" style="color: #1a2e50;">
+                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    PLANNER EVENT
+                </h1>
+                <p class="text-secondary mb-0">Dinas Kesehatan, Pengendalian Penduduk dan KB</p>
+            </div>
+            
+            <div class="d-flex flex-wrap gap-2 no-print">
+                <button onclick="loadEvents()" class="btn btn-gold d-flex align-items-center gap-2">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Muat Ulang
+                </button>
+                <button onclick="bukaModal()" class="btn btn-gold d-flex align-items-center gap-2">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Tambah Jadwal
+                </button>
+                <button onclick="cetakPDF()" class="btn btn-pdf d-flex align-items-center gap-2">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Cetak PDF
+                </button>
+            </div>
+        </div>
+
+        <div id="notif-container" class="no-print"></div>
+
+        <div id="calendar" class="mb-5 position-relative z-0"></div>
+
+        <div class="mt-5 border-top pt-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-3">
+                <h2 class="h4 fw-bold text-dark mb-0">Daftar Jadwal</h2>
+                
+                <div class="w-100 no-print" style="max-width: 300px;">
+                    <input type="text" id="live-search" class="form-control" placeholder="Cari aktivitas secara Live...">
+                </div>
+            </div>
+
+            <div class="table-responsive border rounded shadow-sm">
+                <table class="table table-striped table-hover mb-0 align-middle">
+                    <thead class="table-light text-uppercase" style="font-size: 0.85rem;">
+                        <tr>
+                            <th scope="col" class="py-3 px-3">Aktivitas / Judul</th>
+                            <th scope="col" class="py-3 px-3">Tanggal Mulai</th>
+                            <th scope="col" class="py-3 px-3">Tanggal Selesai</th>
+                            <th scope="col" class="py-3 px-3 text-center no-print">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        </tbody>
+                </table>
+                <div id="empty-state" class="p-5 text-center text-muted d-none">
+                    Tidak ada jadwal yang cocok.
+                </div>
+            </div>
+            <div id="pagination-container"></div>
+        </div>
+    </div>
+
+    <footer class="text-center pb-3 mt-auto">
+        <small class="fw-medium" style="color: #b03030;">Mr.A CODE DEVELOPMENT</small>
+    </footer>
+
+    <div class="modal fade" id="modal-form" tabindex="-1" aria-labelledby="modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark" id="modal-title">Tambah Jadwal Baru</h5>
+                    <button type="button" class="btn-close" onclick="tutupModal()" aria-label="Close"></button>
+                </div>
+                <form id="event-form">
+                    <div class="modal-body">
+                        <input type="hidden" id="event-id">
+                        <div class="mb-3">
+                            <label for="title" class="form-label fw-medium">Nama Aktivitas</label>
+                            <input type="text" name="title" id="title" class="form-control" placeholder="Contoh: Rapat Mingguan" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="start" class="form-label fw-medium">Waktu Mulai</label>
+                                <input type="datetime-local" name="start" id="start" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="end" class="form-label fw-medium">Waktu Selesai</label>
+                                <input type="datetime-local" name="end" id="end" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer d-flex justify-content-between">
+                        <button type="button" id="btn-hapus" onclick="hapusJadwal()" class="btn btn-danger d-none">Hapus</button>
+                        <button type="submit" class="btn btn-gold flex-grow-1 ms-2">Simpan Jadwal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // MASUKKAN URL GOOGLE SCRIPT API ANDA DI SINI
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxZuM5Jd5a65q3wcyQ3XdEEGCUnUiMUy5V2mAOGldnNg7ohK3VdqUXQ4TnIo9YoJphdAA/exec'; 
+
+        // 1. STATE & DATA INITIALIZATION
+        let calendar;
+        let eventModal;
+        let eventsData = [];
+        let currentPage = 1;
+        const ITEMS_PER_PAGE = 10;
+
+        // 2. INISIALISASI FULLCALENDAR & BOOTSTRAP
+        document.addEventListener('DOMContentLoaded', function() {
+            eventModal = new bootstrap.Modal(document.getElementById('modal-form'));
+
+            var calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev today next',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                buttonText: {
+                    today: 'Hari Ini',
+                    month: 'Bulan',
+                    week: 'Minggu',
+                    day: 'Hari'
+                },
+                locale: 'id',
+                events: eventsData,
+                selectable: true,
+                editable: true, 
+                
+                select: function(info) {
+                    bukaModalKosong(info.startStr, info.endStr);
+                },
+                
+                eventClick: function(info) {
+                    bukaModalEdit(info.event);
+                },
+
+                eventDrop: function(info) {
+                    updateEventData(info.event);
+                },
+                eventResize: function(info) {
+                    updateEventData(info.event);
+                },
+
+                eventDidMount: function(info) {
+                    info.el.setAttribute('title', info.event.title);
+                    info.el.style.cursor = 'pointer';
+                }
+            });
+            calendar.render();
+            
+            // Panggil data dari server saat pertama kali dimuat
+            loadEvents();
+
+            // Mulai jam realtime
+            updateRealtimeClock();
+            setInterval(updateRealtimeClock, 1000);
+        });
+
+        // FUNGSI WAKTU REALTIME
+        function updateRealtimeClock() {
+            const clockEl = document.getElementById('top-realtime-clock');
+            if (clockEl) {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                clockEl.textContent = timeString;
+            }
+        }
+
+        // FUNGSI NOTIFIKASI HITUNG MUNDUR
+        function checkCountdownNotifications() {
+            const notifContainer = document.getElementById('notif-container');
+            notifContainer.innerHTML = '';
+            
+            const now = new Date();
+            const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
+
+            eventsData.forEach(event => {
+                const eventDate = new Date(event.start);
+                const timeDiff = eventDate - now;
+
+                if (timeDiff > 0 && timeDiff <= twoDaysInMs) {
+                    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    
+                    let timeText = days > 0 ? `${days} hari ${hours} jam` : `${hours} jam`;
+
+                    const alertHtml = `
+                        <div class="alert alert-warning alert-dismissible fade show border-warning shadow-sm" role="alert">
+                            <strong><svg width="20" height="20" class="d-inline mb-1 me-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Peringatan Jadwal!</strong> 
+                            Aktivitas "<b>${event.title}</b>" akan dilaksanakan dalam waktu ${timeText}.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    notifContainer.insertAdjacentHTML('beforeend', alertHtml);
+                }
+            });
+        }
+
+        // 2.5 FUNGSI LOAD DATA DARI GOOGLE APPS SCRIPT (MENGGUNAKAN FETCH)
+        function loadEvents() {
+            Swal.fire({ title: 'Memuat Jadwal...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+            
+            fetch(API_URL)
+                .then(response => response.json())
+                .then(result => {
+                    Swal.close();
+                    if(result.status === 'success') {
+                        eventsData = result.data;
+                        calendar.removeAllEvents();
+                        calendar.addEventSource(eventsData);
+                        renderTabel(eventsData);
+                        checkCountdownNotifications();
+                    } else {
+                        Swal.fire('Gagal!', result.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.close();
+                    Swal.fire('Error Server!', 'Gagal menghubungi server database.', 'error');
+                    console.error("Error details:", error);
+                });
+        }
+
+        // 3. FUNGSI RENDER TABEL & LIVE SEARCH
+        function renderTabel(data) {
+            const tbody = document.getElementById('table-body');
+            const emptyState = document.getElementById('empty-state');
+            tbody.innerHTML = '';
+
+            const sortedData = [...data].sort((a, b) => new Date(a.start) - new Date(b.start));
+
+            if (sortedData.length === 0) {
+                emptyState.classList.remove('d-none');
+                document.getElementById('pagination-container').innerHTML = '';
+            } else {
+                emptyState.classList.add('d-none');
+
+                const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
+                if (currentPage > totalPages) currentPage = 1;
+
+                const start = (currentPage - 1) * ITEMS_PER_PAGE;
+                const pageData = sortedData.slice(start, start + ITEMS_PER_PAGE);
+
+                pageData.forEach(event => {
+                    const startDate = new Date(event.start).toLocaleString('id-ID', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+                    const endDate = event.end ? new Date(event.end).toLocaleString('id-ID', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '-';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <th scope="row" class="px-3 fw-medium text-dark">${event.title}</th>
+                        <td class="px-3">${startDate}</td>
+                        <td class="px-3">${endDate}</td>
+                        <td class="px-3 text-center no-print">
+                            <button onclick="editDariTabel('${event.id}')" class="btn btn-sm btn-outline-primary fw-bold">Edit</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                renderPagination(sortedData.length, totalPages);
+            }
+        }
+
+        function renderPagination(totalItems, totalPages) {
+            const container = document.getElementById('pagination-container');
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+            let html = `<div class="d-flex justify-content-between align-items-center mt-3 no-print flex-wrap gap-2">
+                <small class="text-muted">Menampilkan ${(currentPage-1)*ITEMS_PER_PAGE+1}–${Math.min(currentPage*ITEMS_PER_PAGE, totalItems)} dari ${totalItems} jadwal</small>
+                <nav><ul class="pagination pagination-sm mb-0">`;
+
+            html += `<li class="page-item ${currentPage===1?'disabled':''}">
+                <button class="page-link" onclick="gantiHalaman(${currentPage-1})">&#8249;</button></li>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<li class="page-item ${i===currentPage?'active':''}">
+                    <button class="page-link" onclick="gantiHalaman(${i})">${i}</button></li>`;
+            }
+
+            html += `<li class="page-item ${currentPage===totalPages?'disabled':''}">
+                <button class="page-link" onclick="gantiHalaman(${currentPage+1})">&#8250;</button></li>`;
+
+            html += `</ul></nav></div>`;
+            container.innerHTML = html;
+        }
+
+        function gantiHalaman(page) {
+            currentPage = page;
+            const keyword = document.getElementById('live-search').value.toLowerCase();
+            const filteredData = keyword
+                ? eventsData.filter(e => e.title.toLowerCase().includes(keyword))
+                : eventsData;
+            renderTabel(filteredData);
+        }
+
+        document.getElementById('live-search').addEventListener('input', function(e) {
+            currentPage = 1;
+            const keyword = e.target.value.toLowerCase();
+            const filteredData = eventsData.filter(event =>
+                event.title.toLowerCase().includes(keyword)
+            );
+            renderTabel(filteredData);
+        });
+
+        // 4. FUNGSI MODAL (TAMBAH, EDIT, HAPUS)
+        const form = document.getElementById('event-form');
+        const modalTitle = document.getElementById('modal-title');
+        const btnHapus = document.getElementById('btn-hapus');
+
+        function bukaModal() {
+            form.reset();
+            document.getElementById('event-id').value = '';
+            modalTitle.innerText = 'Tambah Jadwal Baru';
+            btnHapus.classList.add('d-none');
+            eventModal.show();
+        }
+
+        function bukaModalKosong(startStr, endStr) {
+            bukaModal();
+            if(startStr.includes('T')) {
+                document.getElementById('start').value = startStr.substring(0, 16);
+                if(endStr) document.getElementById('end').value = endStr.substring(0, 16);
+            } else {
+                document.getElementById('start').value = startStr + 'T09:00';
+            }
+        }
+
+        function bukaModalEdit(eventObj) {
+            bukaModal();
+            modalTitle.innerText = 'Edit Jadwal';
+            document.getElementById('event-id').value = eventObj.id;
+            document.getElementById('title').value = eventObj.title;
+            
+            const formatWaktu = (dateObj) => {
+                if(!dateObj) return '';
+                const d = new Date(dateObj);
+                d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                return d.toISOString().slice(0,16);
+            };
+
+            document.getElementById('start').value = formatWaktu(eventObj.start);
+            if(eventObj.end) {
+                document.getElementById('end').value = formatWaktu(eventObj.end);
+            }
+            btnHapus.classList.remove('d-none');
+        }
+
+        function editDariTabel(id) {
+            const ev = calendar.getEventById(id);
+            if(ev) bukaModalEdit(ev);
+        }
+
+        function tutupModal() {
+            eventModal.hide();
+        }
+
+        // Handle Submit Form (Simpan / Update) MENGGUNAKAN FETCH
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const btnSubmit = form.querySelector('button[type="submit"]');
+            const originalText = btnSubmit.innerHTML;
+            
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Menyimpan...`;
+
+            const idRaw = document.getElementById('event-id').value;
+            const payloadData = {
+                id: (idRaw !== "" && idRaw !== null && idRaw !== undefined) ? idRaw.toString() : Date.now().toString(),
+                title: document.getElementById('title').value.toString().trim(),
+                start: document.getElementById('start').value,
+                end: document.getElementById('end').value || null,
+                backgroundColor: '#D4AF37'
+            };
+
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'save',
+                    payload: payloadData
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = originalText;
+                
+                if(result.status === 'success') {
+                    Swal.fire({ title: 'Berhasil!', text: result.message, icon: 'success', showConfirmButton: false, timer: 2500 });
+                    tutupModal();
+                    loadEvents(); 
+                } else {
+                    Swal.fire('Gagal!', result.message, 'error');
+                }
+            })
+            .catch(error => {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = originalText;
+                Swal.fire('Error Server!', 'Terjadi masalah saat mengirim data ke server.', 'error');
+                console.error("Error details:", error);
+            });
+        });
+
+        // Handle Hapus MENGGUNAKAN FETCH
+        function hapusJadwal() {
+            const id = document.getElementById('event-id').value;
+            Swal.fire({
+                title: 'Konfirmasi Hapus',
+                text: 'Apakah Anda yakin ingin menghapus data ini?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({ title: 'Menghapus...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+                    
+                    fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'delete',
+                            eventId: id.toString()
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if(result.status === 'success') {
+                            Swal.fire('Terhapus!', result.message, 'success');
+                            tutupModal();
+                            loadEvents(); 
+                        } else {
+                            Swal.fire('Gagal!', result.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Error Server!', 'Gagal menghubungi server.', 'error');
+                        console.error("Error details:", error);
+                    });
+                }
+            });
+        }
+
+        // Update data array ketika event di-drag di kalender MENGGUNAKAN FETCH
+        function updateEventData(eventObj) {
+            const payloadData = {
+                id: eventObj.id.toString(),
+                title: eventObj.title.toString(),
+                start: eventObj.startStr,
+                end: eventObj.endStr || null,
+                backgroundColor: eventObj.backgroundColor || '#D4AF37'
+            };
+
+            Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Menyimpan perubahan...', showConfirmButton: false });
+            
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'save',
+                    payload: payloadData
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if(result.status === 'success') {
+                    Swal.fire({ title: 'Tersimpan!', text: 'Perubahan jadwal berhasil disimpan.', icon: 'success', showConfirmButton: false, timer: 2500 });
+                    loadEvents(); 
+                } else {
+                    Swal.fire('Gagal!', result.message, 'error');
+                    loadEvents(); 
+                }
+            })
+            .catch(error => {
+                Swal.fire('Error Server!', 'Gagal sinkronisasi data dengan server.', 'error');
+                loadEvents(); 
+            });
+        }
+
+        // 5. FUNGSI CETAK PDF
+        function cetakPDF() {
+            const elemenApp = document.getElementById('main-content');
+            elemenApp.classList.add('pdf-mode');
+
+            const opt = {
+                margin:       10,
+                filename:     'Jadwal_Planner_Event.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            Swal.fire({ title: 'Menyiapkan PDF...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+
+            html2pdf().set(opt).from(elemenApp).save().then(() => {
+                elemenApp.classList.remove('pdf-mode');
+                Swal.close();
+            });
+        }
+    </script>
+    
+    <script>
+        // Registrasi Service Worker untuk PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker terdaftar'))
+                    .catch(err => console.log('Service Worker gagal:', err));
+            });
+        }
+    </script>
+
+    <script>
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          deferredPrompt = e;
+          console.log("Aplikasi siap diinstall");
+
+          const installBtn = document.createElement("button");
+          installBtn.innerText = "Install Aplikasi";
+          installBtn.className = "btn btn-gold position-fixed bottom-0 end-0 m-4 shadow";
+          document.body.appendChild(installBtn);
+
+          installBtn.addEventListener("click", () => {
+            installBtn.style.display = "none";
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(choiceResult => {
+              if (choiceResult.outcome === "accepted") {
+                console.log("User menginstall aplikasi");
+              }
+              deferredPrompt = null;
+            });
+          });
+        });
+    </script>
+</body>
+</html>
